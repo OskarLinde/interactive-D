@@ -19,6 +19,14 @@ char[][][char[]] moduleDeps;  // module dependencies
 char[][][char[]] moduleRDeps; // reverse dependencies
 
 
+char[] moduleMangledName(char[] name) {
+	char[] ret;
+	char[][] parts = name.split(".");
+	foreach(p; parts) 
+		ret ~= format("%s%s",p.length,p);
+	return ret;
+}
+
 void checkAllModificationDates() {
 	char[][] dirtyModules;
 	
@@ -66,7 +74,7 @@ char[] moduleFromSource(char[] source) {
 void importModule(char[] moduleName, bool forced) {
 	scope(success) if (forced) forcedModules.setAdd(moduleName);
 
-	if (moduleName.beginsWith("std."))
+	if (moduleName.beginsWith("std.")) // BUG if moduleName is missing
 		return;
 	if (moduleName in handles) // already imported
 		return;
@@ -104,6 +112,13 @@ void importModule(char[] moduleName, bool forced) {
 	if (!handle) {
 		throw new Exception(std.string.format("dlopen(\"%s\"): %s", 
 		                                      modFile, std.string.toString(dlerror())));
+	}
+	
+	auto funcptr = dlsym(handle,("_D"~moduleMangledName(moduleName)~"11_staticCtorFZv\0").ptr);
+	if (funcptr) {
+		auto func = cast(void function ()) funcptr;
+	
+		func();
 	}
 	
 	handles[moduleName] = handle;

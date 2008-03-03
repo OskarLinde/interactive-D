@@ -11,6 +11,8 @@ import interactive.timer;
 import interactive.modules;
 import interactive.settings;
 
+import interactive.allstd; // ough
+
 Value[char[]] variables;
 
 import std.typeinfo.ti_Adouble;
@@ -110,7 +112,7 @@ Value call(`~arglist~`) {
 	try {
 		build([tmpdir~"/caller.d"],libfile,deps);
 	} catch(BuildException e) {
-		if (e.toString() == "Failed to compile caller.d")
+		if (e.toString() == "Failed to compile "~tmpdir~"/caller.d")
 			throw new BuildException("Failed to evaluate");
 		throw e;
 	}

@@ -12,11 +12,12 @@ version(darwin) {
 	char[] username;
 	
 	extern(C) char* getenv(char *name);
+	extern(C) int getpid();
 	
 	static this() {
 		home = toString(getenv("HOME"));
 		// Note cleanup() below!!!
-		tmpdir = "/tmp/InteractiveD-" ~ toString(getenv("USER"));
+		tmpdir = format("/tmp/InteractiveD-%s-%s",toString(getenv("USER")),getpid());
 		system("mkdir "~tmpdir ~ " >> /dev/null");
 		system("id -P | cut -d: -f8 > "~tmpdir~"/name");
 		username = cast(char[])std.file.read(tmpdir~"/name");
