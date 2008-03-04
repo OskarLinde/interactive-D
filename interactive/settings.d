@@ -41,7 +41,7 @@ version(darwin) {
 				int a = l.find('(');
 				int b = l.rfind(')');
 				if (a == -1 || b == -1)
-				continue;
+					continue;
 				deps ~= l[a+1..b];
 			}
 		}
