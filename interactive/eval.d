@@ -39,6 +39,8 @@ static this() {
 }
 
 Value expression(char[] str, Value[char[]] args = variables) {
+	static evalnum = 0;
+	evalnum++;
 	//{ scope vv = new Timer("Eval total"); 
 	//{ scope v = new Timer("Writing file"); 
 	
@@ -52,6 +54,7 @@ Value expression(char[] str, Value[char[]] args = variables) {
 	char[] callstr;
 	Value[] argvalues;
 	int i = 0;
+
 	foreach(n,v; args) {
 		arglist ~= "ref " ~ v.typestr ~ " " ~ n ~", ";
 		callstr ~= format("*(cast(%s*) args[%s].value.ptr), ",v.typestr,i);
@@ -68,7 +71,8 @@ Value expression(char[] str, Value[char[]] args = variables) {
 	foreach(m; forcedModules)
 	imports ~= "import " ~ m ~ ";\n";
 	
-	std.file.write(tmpdir ~ "/caller.d",
+	char[] srcfile = format("%s/caller%03d.d",tmpdir,evalnum);
+	std.file.write(srcfile,
 	`import interactive.value;
 `~imports~`
 	
@@ -88,9 +92,9 @@ Value call(`~arglist~`) {
 			auto __r = __t[];
 		else
 			auto __r = __t;
-		static if (is(typeof(__r.ptr)) && is (typeof(__r.dup))) {
+	static if (is(typeof(__r.ptr)) && is (typeof(__r.dup))) {
 			// On stack or in static data segment
-			if (__r.ptr > cast(void*)0xB0000000 || __r.ptr < cast(void*)0x100000) {
+			if (__r.ptr > cast(void*)&__ret - 100000) {
 				__r = __r.dup;
 			}
 		}
@@ -105,14 +109,14 @@ Value call(`~arglist~`) {
 	//}
 	//{ 	scope v = new Timer("Build total");
 	
-	char[] libfile = tmpdir ~ "/caller" ~ binext ~ \0;
+	char[] libfile = format("%s/caller%03s%s\0",tmpdir,evalnum,binext);
 	libfile = libfile[0..$-1]; // strip off zero-termination
 	
 	char[][] deps = null;
 	try {
-		build([tmpdir~"/caller.d"],libfile,deps);
+		build([srcfile],libfile,deps);
 	} catch(BuildException e) {
-		if (e.toString() == "Failed to compile "~tmpdir~"/caller.d")
+		if (e.toString() == "Failed to compile "~srcfile)
 			throw new BuildException("Failed to evaluate");
 		throw e;
 	}
@@ -126,7 +130,8 @@ Value call(`~arglist~`) {
 	if (!handle) {
 		throw new Exception(std.string.format("dlopen(\""~libfile~"\"): %s",std.string.toString(dlerror())));
 	}
-	auto funcptr = dlsym(handle,"_D6caller5entryFAS11interactive5value5ValueZS11interactive5value5Value");
+	auto funcptr = dlsym(handle,format("_D9caller%03s5entryFAS11interactive5value5ValueZS11interactive5value5Value\0",
+	                evalnum).ptr);
 	if (!funcptr) {
 		throw new Exception(format("dlsym: %s",std.string.toString(dlerror())));
 	}
@@ -138,14 +143,21 @@ Value call(`~arglist~`) {
 	//{   scope v = new Timer("calling"); 
 		val = func(argvalues);
 	//}
-	if (val.typestr.length > 11 && val.typestr[$-11..$] == ".ArraySlice")
-		val.typestr = val.typestr[0..$-11];
+	
+	// Hack to work around TypeInfo.toString bug for templates (not complete)
+	int p = val.typestr.rfind(".");
+	int q = val.typestr.find("!");
+	if (p > -1 && q > -1 && p < val.typestr.length) {
+		int l = val.typestr.length-p-1;
+		if (val.typestr[q-l..q] == val.typestr[p+1..$]) 
+			val.typestr = val.typestr[0..p];
+	}
 	
 	//writefln(" * ",str," = ",toString(val), " (",val.typestr,")");	
 	
 	//{	scope v = new Timer("unloading");
 	
-		dlclose(handle);
+		//dlclose(handle);
 	//}
 
 
