@@ -108,7 +108,7 @@ void importModule(char[] moduleName, bool forced) {
 	void *handle;
 	
 	//{	scope v = new Timer("dyld");
-	handle = dlopen(toStringz(modFile),RTLD_NOW);
+	handle = dlopen(toStringz(modFile),RTLD_NOW|RTLD_GLOBAL);
 	if (!handle) {
 		throw new Exception(std.string.format("dlopen(\"%s\"): %s", 
 		                                      modFile, std.string.toString(dlerror())));

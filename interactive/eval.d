@@ -126,7 +126,7 @@ Value call(`~arglist~`) {
 	void *handle;
 	
 	//{	scope v = new Timer("dyld");
-	handle = dlopen(libfile.ptr,RTLD_NOW);
+	handle = dlopen(libfile.ptr,RTLD_NOW|RTLD_GLOBAL);
 	if (!handle) {
 		throw new Exception(std.string.format("dlopen(\""~libfile~"\"): %s",std.string.toString(dlerror())));
 	}
@@ -157,7 +157,7 @@ Value call(`~arglist~`) {
 	
 	//{	scope v = new Timer("unloading");
 	
-		//dlclose(handle);
+		dlclose(handle);
 	//}
 
 
