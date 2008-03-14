@@ -6,6 +6,8 @@ import std.file;
 
 import interactive.utils;
 
+version(DigitalMars) {static assert(0,"Sorry, DMD is currently unsupported. Try GDC."); }
+
 version(darwin) {
 	private char[] home;
 	char[] tmpdir;
@@ -32,7 +34,7 @@ version(darwin) {
 	//char[] bindir = ".";
 	char[] binext = ".osxi386";
 	
-	version=USE_GDC;
+	version=COMPILER_GDC;
 
 	int link(char[][] files, char[] outfile) {
 		return system("gcc "~join(files," ")~" -bundle -Wl,-flat_namespace "
@@ -74,7 +76,7 @@ version(darwin) {
 	//char[] bindir = ".";
 	char[] binext = ".lnxi386";
 	
-	version=USE_GDC;
+	version=COMPILER_GDC;
 	
 	int link(char[][] files, char[] outfile) {
 		return system("gcc "~join(files," ")~" -shared -o " ~ outfile);
@@ -86,7 +88,7 @@ version(darwin) {
 }
 else { static assert(0,"Unsupported platform"); }
 
-version(USE_GDC) {
+version(COMPILER_GDC) {
 	int compile(char[] file, char[] outfile, inout char[][] deps) {
 		deps.length = 0;
 		int s = system("gdc --d-verbose -fPIC -c -I/usr/include/d -I" ~ home ~ "/d/include/d " ~ file ~ " -o "~outfile~" > "~tmpdir~"/DEPS");
